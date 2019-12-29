@@ -292,16 +292,22 @@ to its original value when it is released. */
  */
 typedef struct tskTaskControlBlock
 {
+	// 栈顶
 	volatile StackType_t	*pxTopOfStack;	/*< Points to the location of the last item placed on the tasks stack.  THIS MUST BE THE FIRST MEMBER OF THE TCB STRUCT. */
 
 	#if ( portUSING_MPU_WRAPPERS == 1 )
 		xMPU_SETTINGS	xMPUSettings;		/*< The MPU settings are defined as part of the port layer.  THIS MUST BE THE SECOND MEMBER OF THE TCB STRUCT. */
 	#endif
 
+	// 任务节点
 	ListItem_t			xStateListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
 	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
 	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
+	
+	// 任务栈起始地址
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
+	
+	// 任务名称，字符串形式
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
 	#if ( portSTACK_GROWTH > 0 )
@@ -583,16 +589,19 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
 
-	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,
-									const char * const pcName,
-									const uint32_t ulStackDepth,
-									void * const pvParameters,
-									UBaseType_t uxPriority,
-									StackType_t * const puxStackBuffer,
-									StaticTask_t * const pxTaskBuffer ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,				// 任务入口
+									const char * const pcName,				// 任务名称
+									const uint32_t ulStackDepth,			// 任务栈大小，单位为字
+									void * const pvParameters,				// 任务形参
+									UBaseType_t uxPriority,					// 任务优先级
+									StackType_t * const puxStackBuffer,		// 任务栈起始地址
+									StaticTask_t * const pxTaskBuffer ) 	// 任务控制块指针
+																			/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 	{
-	TCB_t *pxNewTCB;
-	TaskHandle_t xReturn;
+		TCB_t *pxNewTCB;
+
+		// 任务句柄，任务句柄用于指向任务的TCB，实际是一个空指针
+		TaskHandle_t xReturn;
 
 		configASSERT( puxStackBuffer != NULL );
 		configASSERT( pxTaskBuffer != NULL );
@@ -612,6 +621,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			}
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 
+			// 创建新的任务
 			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL );
 			prvAddNewTaskToReadyList( pxNewTCB );
 		}
@@ -620,6 +630,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 			xReturn = NULL;
 		}
 
+		// 返回任务句柄，如果任务创建成功，此时xReturn应该指向任务控制块
 		return xReturn;
 	}
 
@@ -764,17 +775,17 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB ) PRIVILEGED_FUNCTION;
 #endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 /*-----------------------------------------------------------*/
 
-static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,
-									const char * const pcName,
-									const uint32_t ulStackDepth,
-									void * const pvParameters,
-									UBaseType_t uxPriority,
-									TaskHandle_t * const pxCreatedTask,
-									TCB_t *pxNewTCB,
+static void prvInitialiseNewTask( 	TaskFunction_t pxTaskCode,				// 任务入口
+									const char * const pcName,				// 任务名称
+									const uint32_t ulStackDepth,			// 任务栈大小，单位为字
+									void * const pvParameters,				// 任务形参
+									UBaseType_t uxPriority,					// 任务优先级
+									TaskHandle_t * const pxCreatedTask,		// 
+									TCB_t *pxNewTCB,						// 任务栈起始地址
 									const MemoryRegion_t * const xRegions ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 {
-StackType_t *pxTopOfStack;
-UBaseType_t x;
+	StackType_t *pxTopOfStack;
+	UBaseType_t x;
 
 	#if( portUSING_MPU_WRAPPERS == 1 )
 		/* Should the task be created in privileged mode? */
@@ -804,7 +815,10 @@ UBaseType_t x;
 	by the port. */
 	#if( portSTACK_GROWTH < 0 )
 	{
+		// 获取栈顶地址
 		pxTopOfStack = pxNewTCB->pxStack + ( ulStackDepth - ( uint32_t ) 1 );
+		
+		// 向下做8字节对齐
 		pxTopOfStack = ( StackType_t * ) ( ( ( portPOINTER_SIZE_TYPE ) pxTopOfStack ) & ( ~( ( portPOINTER_SIZE_TYPE ) portBYTE_ALIGNMENT_MASK ) ) ); /*lint !e923 MISRA exception.  Avoiding casts between pointers and integers is not practical.  Size differences accounted for using portPOINTER_SIZE_TYPE type. */
 
 		/* Check the alignment of the calculated top of stack is correct. */
@@ -824,6 +838,7 @@ UBaseType_t x;
 	#endif /* portSTACK_GROWTH */
 
 	/* Store the task name in the TCB. */
+	// 将任务的名字存储在TCB中
 	for( x = ( UBaseType_t ) 0; x < ( UBaseType_t ) configMAX_TASK_NAME_LEN; x++ )
 	{
 		pxNewTCB->pcTaskName[ x ] = pcName[ x ];
@@ -843,6 +858,7 @@ UBaseType_t x;
 
 	/* Ensure the name string is terminated in the case that the string length
 	was greater or equal to configMAX_TASK_NAME_LEN. */
+	// 任务名字的长度不能超过configMAX_TASK_NAME_LEN
 	pxNewTCB->pcTaskName[ configMAX_TASK_NAME_LEN - 1 ] = '\0';
 
 	/* This is used as an array index so must ensure it's not too large.  First
@@ -864,11 +880,13 @@ UBaseType_t x;
 	}
 	#endif /* configUSE_MUTEXES */
 
+	// 初始化TCB中的xStateListItem节点
 	vListInitialiseItem( &( pxNewTCB->xStateListItem ) );
 	vListInitialiseItem( &( pxNewTCB->xEventListItem ) );
 
 	/* Set the pxNewTCB as a link back from the ListItem_t.  This is so we can get
 	back to	the containing TCB from a generic item in a list. */
+	// 设置xStateListItem节点的拥有者
 	listSET_LIST_ITEM_OWNER( &( pxNewTCB->xStateListItem ), pxNewTCB );
 
 	/* Event lists are always in priority order. */
@@ -937,6 +955,7 @@ UBaseType_t x;
 	but had been interrupted by the scheduler.  The return address is set
 	to the start of the task function. Once the stack has been initialised
 	the	top of stack variable is updated. */
+	// 初始化任务栈，并更新栈顶指针
 	#if( portUSING_MPU_WRAPPERS == 1 )
 	{
 		pxNewTCB->pxTopOfStack = pxPortInitialiseStack( pxTopOfStack, pxTaskCode, pvParameters, xRunPrivileged );
@@ -947,6 +966,7 @@ UBaseType_t x;
 	}
 	#endif /* portUSING_MPU_WRAPPERS */
 
+	// 让任务句柄指向任务控制块
 	if( ( void * ) pxCreatedTask != NULL )
 	{
 		/* Pass the handle out in an anonymous way.  The handle can be used to
