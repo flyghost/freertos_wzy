@@ -177,6 +177,8 @@ use of FreeRTOS.*/
 
 /*
  * Definition of the only type of object that a list can contain.
+ * 定义列表可以包含的唯一对象类型。
+ * 链表节点数据结构定义
  */
 struct xLIST_ITEM
 {
@@ -195,24 +197,35 @@ struct xLIST_ITEM
 };
 typedef struct xLIST_ITEM ListItem_t;					/* For some reason lint wants this as two separate definitions. */
 
+/*
+ * 链表精简节点结构体定义
+ */
 struct xMINI_LIST_ITEM
 {
 	listFIRST_LIST_ITEM_INTEGRITY_CHECK_VALUE			/*< Set to a known value if configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES is set to 1. */
-	configLIST_VOLATILE TickType_t xItemValue;
-	struct xLIST_ITEM * configLIST_VOLATILE pxNext;
-	struct xLIST_ITEM * configLIST_VOLATILE pxPrevious;
+	// 辅助值，用于帮助节点做升序排列
+    configLIST_VOLATILE TickType_t xItemValue;
+	// 指向链表下一个节点
+    struct xLIST_ITEM * configLIST_VOLATILE pxNext;
+	// 指向链表上一个节点
+    struct xLIST_ITEM * configLIST_VOLATILE pxPrevious;
 };
 typedef struct xMINI_LIST_ITEM MiniListItem_t;
 
 /*
  * Definition of the type of queue used by the scheduler.
+ * 用于调度程序使用的队列类型的定义。
+ * 链表根节点数据结构定义
  */
 typedef struct xLIST
 {
 	listFIRST_LIST_INTEGRITY_CHECK_VALUE				/*< Set to a known value if configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES is set to 1. */
-	configLIST_VOLATILE UBaseType_t uxNumberOfItems;
-	ListItem_t * configLIST_VOLATILE pxIndex;			/*< Used to walk through the list.  Points to the last item returned by a call to listGET_OWNER_OF_NEXT_ENTRY (). */
-	MiniListItem_t xListEnd;							/*< List item that contains the maximum possible item value meaning it is always at the end of the list and is therefore used as a marker. */
+	// 链表节点计数器
+    configLIST_VOLATILE UBaseType_t uxNumberOfItems;
+	// 链表节点索引指针
+    ListItem_t * configLIST_VOLATILE pxIndex;			/*< Used to walk through the list.  Points to the last item returned by a call to listGET_OWNER_OF_NEXT_ENTRY (). */
+	// 链表最后一个节点
+    MiniListItem_t xListEnd;							/*< List item that contains the maximum possible item value meaning it is always at the end of the list and is therefore used as a marker. */
 	listSECOND_LIST_INTEGRITY_CHECK_VALUE				/*< Set to a known value if configUSE_LIST_DATA_INTEGRITY_CHECK_BYTES is set to 1. */
 } List_t;
 
@@ -222,6 +235,8 @@ typedef struct xLIST
  *
  * \page listSET_LIST_ITEM_OWNER listSET_LIST_ITEM_OWNER
  * \ingroup LinkedList
+ * 
+ * 初始化节点的拥有者
  */
 #define listSET_LIST_ITEM_OWNER( pxListItem, pxOwner )		( ( pxListItem )->pvOwner = ( void * ) ( pxOwner ) )
 
@@ -231,6 +246,8 @@ typedef struct xLIST
  *
  * \page listSET_LIST_ITEM_OWNER listSET_LIST_ITEM_OWNER
  * \ingroup LinkedList
+ * 
+ * 获取节点的拥有者
  */
 #define listGET_LIST_ITEM_OWNER( pxListItem )	( ( pxListItem )->pvOwner )
 
@@ -240,6 +257,8 @@ typedef struct xLIST
  *
  * \page listSET_LIST_ITEM_VALUE listSET_LIST_ITEM_VALUE
  * \ingroup LinkedList
+ * 
+ * 初始化节点排序辅助值
  */
 #define listSET_LIST_ITEM_VALUE( pxListItem, xValue )	( ( pxListItem )->xItemValue = ( xValue ) )
 
@@ -250,6 +269,8 @@ typedef struct xLIST
  *
  * \page listGET_LIST_ITEM_VALUE listGET_LIST_ITEM_VALUE
  * \ingroup LinkedList
+ * 
+ * 获取节点排序辅助值
  */
 #define listGET_LIST_ITEM_VALUE( pxListItem )	( ( pxListItem )->xItemValue )
 
@@ -259,6 +280,8 @@ typedef struct xLIST
  *
  * \page listGET_LIST_ITEM_VALUE listGET_LIST_ITEM_VALUE
  * \ingroup LinkedList
+ * 
+ * 获取链表根节点的节点计数器的值
  */
 #define listGET_ITEM_VALUE_OF_HEAD_ENTRY( pxList )	( ( ( pxList )->xListEnd ).pxNext->xItemValue )
 
@@ -267,6 +290,8 @@ typedef struct xLIST
  *
  * \page listGET_HEAD_ENTRY listGET_HEAD_ENTRY
  * \ingroup LinkedList
+ * 
+ * 获取链表的入口节点
  */
 #define listGET_HEAD_ENTRY( pxList )	( ( ( pxList )->xListEnd ).pxNext )
 
@@ -275,6 +300,8 @@ typedef struct xLIST
  *
  * \page listGET_NEXT listGET_NEXT
  * \ingroup LinkedList
+ * 
+ * 获取节点的下一个节点
  */
 #define listGET_NEXT( pxListItem )	( ( pxListItem )->pxNext )
 
@@ -283,6 +310,8 @@ typedef struct xLIST
  *
  * \page listGET_END_MARKER listGET_END_MARKER
  * \ingroup LinkedList
+ * 
+ * 获取节点的最后一个节点
  */
 #define listGET_END_MARKER( pxList )	( ( ListItem_t const * ) ( &( ( pxList )->xListEnd ) ) )
 
@@ -292,11 +321,15 @@ typedef struct xLIST
  *
  * \page listLIST_IS_EMPTY listLIST_IS_EMPTY
  * \ingroup LinkedList
+ * 
+ * 判断链表是否为空
  */
 #define listLIST_IS_EMPTY( pxList )	( ( BaseType_t ) ( ( pxList )->uxNumberOfItems == ( UBaseType_t ) 0 ) )
 
 /*
  * Access macro to return the number of items in the list.
+ * 
+ * 获取链表的节点数
  */
 #define listCURRENT_LIST_LENGTH( pxList )	( ( pxList )->uxNumberOfItems )
 
@@ -319,6 +352,8 @@ typedef struct xLIST
  *
  * \page listGET_OWNER_OF_NEXT_ENTRY listGET_OWNER_OF_NEXT_ENTRY
  * \ingroup LinkedList
+ * 
+ * 获取链表第一个节点的OWNER，即TCB
  */
 #define listGET_OWNER_OF_NEXT_ENTRY( pxTCB, pxList )										\
 {																							\

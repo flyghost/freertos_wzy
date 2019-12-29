@@ -76,22 +76,27 @@
  * PUBLIC LIST API documented in list.h
  *----------------------------------------------------------*/
 
+// 链表根节点初始化
 void vListInitialise( List_t * const pxList )
 {
 	/* The list structure contains a list item which is used to mark the
 	end of the list.  To initialise the list the list end is inserted
 	as the only list entry. */
+	// 将链表索引指针指向最后一个节点
 	pxList->pxIndex = ( ListItem_t * ) &( pxList->xListEnd );			/*lint !e826 !e740 The mini list structure is used as the list end to save RAM.  This is checked and valid. */
 
 	/* The list end value is the highest possible value in the list to
 	ensure it remains at the end of the list. */
+	// 将链表最后一个节点的辅助排序的值设置为最大，确保该节点就是链表的最后节点
 	pxList->xListEnd.xItemValue = portMAX_DELAY;
 
 	/* The list end next and previous pointers point to itself so we know
 	when the list is empty. */
+	// 将最后一个节点的 pxNext 和 pxPrevious 指针均指向节点自身，表示链表为空
 	pxList->xListEnd.pxNext = ( ListItem_t * ) &( pxList->xListEnd );	/*lint !e826 !e740 The mini list structure is used as the list end to save RAM.  This is checked and valid. */
 	pxList->xListEnd.pxPrevious = ( ListItem_t * ) &( pxList->xListEnd );/*lint !e826 !e740 The mini list structure is used as the list end to save RAM.  This is checked and valid. */
 
+	// 初始化链表节点计数器的值为 0，表示链表为空
 	pxList->uxNumberOfItems = ( UBaseType_t ) 0U;
 
 	/* Write known values into the list if
@@ -101,9 +106,11 @@ void vListInitialise( List_t * const pxList )
 }
 /*-----------------------------------------------------------*/
 
+// 链表节点初始化
 void vListInitialiseItem( ListItem_t * const pxItem )
 {
 	/* Make sure the list item is not recorded as being on a list. */
+	// 确保列表项没有被记录为在列表中
 	pxItem->pvContainer = NULL;
 
 	/* Write known values into the list item if
@@ -113,9 +120,12 @@ void vListInitialiseItem( ListItem_t * const pxItem )
 }
 /*-----------------------------------------------------------*/
 
+/*
+ * 将节点插入到链表的尾部
+*/
 void vListInsertEnd( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
-ListItem_t * const pxIndex = pxList->pxIndex;
+	ListItem_t * const pxIndex = pxList->pxIndex;
 
 	/* Only effective when configASSERT() is also defined, these tests may catch
 	the list data structures being overwritten in memory.  They will not catch
@@ -136,16 +146,23 @@ ListItem_t * const pxIndex = pxList->pxIndex;
 	pxIndex->pxPrevious = pxNewListItem;
 
 	/* Remember which list the item is in. */
+	// 记住该节点所在的链表
 	pxNewListItem->pvContainer = ( void * ) pxList;
 
+	// 链表节点计数器加一
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
 
+/*
+ * 将节点按照升序排列插入到链表
+*/
 void vListInsert( List_t * const pxList, ListItem_t * const pxNewListItem )
 {
-ListItem_t *pxIterator;
-const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
+	ListItem_t *pxIterator;
+
+	// 获取节点的排序辅助值
+	const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 
 	/* Only effective when configASSERT() is also defined, these tests may catch
 	the list data structures being overwritten in memory.  They will not catch
@@ -161,6 +178,7 @@ const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 	share of the CPU.  However, if the xItemValue is the same as the back marker
 	the iteration loop below will not end.  Therefore the value is checked
 	first, and the algorithm slightly modified if necessary. */
+	// 根据节点的排序辅助值，寻找节点要插入的位置
 	if( xValueOfInsertion == portMAX_DELAY )
 	{
 		pxIterator = pxList->xListEnd.pxPrevious;
@@ -193,9 +211,11 @@ const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 		{
 			/* There is nothing to do here, just iterating to the wanted
 			insertion position. */
+			// 没有事情可做，不断迭代只是为了找到节点要插入的位置
 		}
 	}
 
+	// 根据升序排列，将节点插入
 	pxNewListItem->pxNext = pxIterator->pxNext;
 	pxNewListItem->pxNext->pxPrevious = pxNewListItem;
 	pxNewListItem->pxPrevious = pxIterator;
@@ -203,18 +223,24 @@ const TickType_t xValueOfInsertion = pxNewListItem->xItemValue;
 
 	/* Remember which list the item is in.  This allows fast removal of the
 	item later. */
+	// 记住该节点所在的链表
 	pxNewListItem->pvContainer = ( void * ) pxList;
 
 	( pxList->uxNumberOfItems )++;
 }
 /*-----------------------------------------------------------*/
 
+/*
+ * 将节点从链表删除
+*/
 UBaseType_t uxListRemove( ListItem_t * const pxItemToRemove )
 {
-/* The list item knows which list it is in.  Obtain the list from the list
-item. */
-List_t * const pxList = ( List_t * ) pxItemToRemove->pvContainer;
+	/* The list item knows which list it is in.  Obtain the list from the list
+	item. */
+	// 获取节点所在的链表
+	List_t * const pxList = ( List_t * ) pxItemToRemove->pvContainer;
 
+	// 将指定的节点从链表删除
 	pxItemToRemove->pxNext->pxPrevious = pxItemToRemove->pxPrevious;
 	pxItemToRemove->pxPrevious->pxNext = pxItemToRemove->pxNext;
 
@@ -222,6 +248,7 @@ List_t * const pxList = ( List_t * ) pxItemToRemove->pvContainer;
 	mtCOVERAGE_TEST_DELAY();
 
 	/* Make sure the index is left pointing to a valid item. */
+	// 调整链表的节点索引指针
 	if( pxList->pxIndex == pxItemToRemove )
 	{
 		pxList->pxIndex = pxItemToRemove->pxPrevious;
@@ -231,9 +258,13 @@ List_t * const pxList = ( List_t * ) pxItemToRemove->pvContainer;
 		mtCOVERAGE_TEST_MARKER();
 	}
 
+	// 初始化该节点所在的链表为空，表示节点还没有插入任何链表
 	pxItemToRemove->pvContainer = NULL;
+
+	// 链表节点计数器减一
 	( pxList->uxNumberOfItems )--;
 
+	// 返回链表中剩余节点的个数
 	return pxList->uxNumberOfItems;
 }
 /*-----------------------------------------------------------*/
