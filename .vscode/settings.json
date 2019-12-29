@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "Kconfig": "markdown",
+        "freertos.h": "c"
+    }
+}
